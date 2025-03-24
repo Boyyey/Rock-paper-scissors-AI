@@ -1,0 +1,132 @@
+import tkinter as tk
+from tkinter import messagebox
+import random
+import json
+from collections import defaultdict
+
+
+class RockPaperScissorsMarkovAI:
+    def __init__(self, memory_file="ai_memory.json"):
+        self.memory_file = memory_file
+        self.transition_counts = self.load_memory()
+        self.last_two_moves = (None, None)
+        self.choices = ['rock', 'paper', 'scissors']
+        self.win_mapping = {'rock': 'scissors', 'scissors': 'paper', 'paper': 'rock'}
+
+    def load_memory(self):
+        try:
+            with open(self.memory_file, 'r') as file:
+                data = json.load(file)
+                # Ensure keys are converted from strings to tuples
+                converted_data = defaultdict(lambda: defaultdict(int))
+                for key, value in data.items():
+                    move1, move2 = key.split(',')
+                    converted_data[(move1, move2)] = value
+                return converted_data
+        except (FileNotFoundError, json.JSONDecodeError):
+            return defaultdict(lambda: defaultdict(int))
+
+    def save_memory(self):
+        # Convert keys from tuples to strings before saving
+        converted_data = {}
+        for (move1, move2), value in self.transition_counts.items():
+            key = f"{move1},{move2}"
+            converted_data[key] = value
+        with open(self.memory_file, 'w') as file:
+            json.dump(converted_data, file)
+
+    def predict(self):
+        if None in self.last_two_moves:
+            # No prediction possible initially
+            return random.choice(self.choices)
+
+        # Get transition counts for the last two moves
+        transitions = self.transition_counts[self.last_two_moves]
+        total = sum(transitions.values())
+        if total == 0:
+            # If no data, choose randomly
+            return random.choice(self.choices)
+
+        # Calculate probabilities for next moves
+        probabilities = {move: count / total for move, count in transitions.items()}
+        predicted_user_move = max(probabilities, key=probabilities.get)
+
+        # Counter the predicted move
+        return self.win_mapping[predicted_user_move]
+
+    def update_transition_counts(self, user_move):
+        if None not in self.last_two_moves:
+            # Update transition counts
+            self.transition_counts[self.last_two_moves][user_move] += 1
+        # Update last_two_moves for the next round
+        self.last_two_moves = (self.last_two_moves[1], user_move)
+
+    def determine_winner(self, ai_move, user_move):
+        if user_move == ai_move:
+            return f"Tie! Both chose {user_move}."
+        elif self.win_mapping[ai_move] == user_move:
+            return f"AI wins! AI chose {ai_move} and you chose {user_move}."
+        else:
+            return f"You win! You chose {user_move} and AI chose {ai_move}."
+
+
+class RPSApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Rock-Paper-Scissors with Markov AI")
+        self.rps_ai = RockPaperScissorsMarkovAI()
+
+        # Title Label
+        self.title_label = tk.Label(root, text="Rock-Paper-Scissors", font=("Helvetica", 18, "bold"))
+        self.title_label.pack(pady=10)
+
+        # Buttons for user input
+        self.button_frame = tk.Frame(root)
+        self.button_frame.pack(pady=10)
+
+        self.rock_button = tk.Button(self.button_frame, text="Rock", command=lambda: self.play_game("rock"))
+        self.rock_button.grid(row=0, column=0, padx=10)
+
+        self.paper_button = tk.Button(self.button_frame, text="Paper", command=lambda: self.play_game("paper"))
+        self.paper_button.grid(row=0, column=1, padx=10)
+
+        self.scissors_button = tk.Button(self.button_frame, text="Scissors", command=lambda: self.play_game("scissors"))
+        self.scissors_button.grid(row=0, column=2, padx=10)
+
+        # Display for results
+        self.result_label = tk.Label(root, text="", font=("Helvetica", 14))
+        self.result_label.pack(pady=10)
+
+        # Display AI reasoning
+        self.reasoning_label = tk.Label(root, text="", font=("Helvetica", 12))
+        self.reasoning_label.pack(pady=5)
+
+        # Reset Button
+        self.reset_button = tk.Button(root, text="Reset Memory", command=self.reset_memory)
+        self.reset_button.pack(pady=10)
+
+    def play_game(self, user_move):
+        try:
+            ai_move = self.rps_ai.predict()
+            result = self.rps_ai.determine_winner(ai_move, user_move)
+            self.rps_ai.update_transition_counts(user_move)
+            self.rps_ai.save_memory()
+
+            self.result_label.config(text=result)
+            prediction_reasoning = f"AI predicted your move based on {self.rps_ai.last_two_moves[1]} (if applicable)."
+            self.reasoning_label.config(text=prediction_reasoning)
+        except Exception as e:
+            self.result_label.config(text="An error occurred!")
+            print(f"Error: {e}")
+
+    def reset_memory(self):
+        self.rps_ai.transition_counts = defaultdict(lambda: defaultdict(int))
+        self.rps_ai.save_memory()
+        messagebox.showinfo("Memory Reset", "AI memory has been reset!")
+
+
+# Main loop
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = RPSApp(root)
+    root.mainloop()
