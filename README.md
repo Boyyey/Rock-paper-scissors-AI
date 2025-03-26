@@ -14,16 +14,16 @@ Reset Option 🔄: Clear AI's memory at any time to start fresh.
 
 Installation 🛠️
 
-Prerequisites
+Prerequisites:
 
 Ensure you have Python installed on your system (Python 3.x recommended). If you don’t have it yet, download it from python.org.
 
-Clone the Repository
+Clone the Repository:
 
 git clone https://github.com/Boyyey/Rock-paper-scissors-AI.git
 cd Rock-paper-scissors-AI
 
-Install Dependencies
+Install Dependencies:
 
 This project only requires Tkinter, which is built into Python. However, if you need to ensure all dependencies are met, install them using:
 
@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 (Optional: Create a virtual environment before installing dependencies)
 
-Run the Game
+Run the Game:
 
 python rps_ai.py
 
